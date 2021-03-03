@@ -1,0 +1,184 @@
+---
+title: "Group 8 Clustering"
+output: html_notebook
+---
+
+```{r}
+link="https://raw.githubusercontent.com/Group8-GovAnalyticsProject/Merging/main/final_merged_data.csv"
+#Read the csv file we have merged, name it "final".
+final=read.csv(link)
+row.names(final)=NULL
+```
+
+```{r}
+#Pick the variables we need for clustering, name it "dfClus".
+dfClus=final[,c("all_positive","median_hhold_inc","median_age","count_19","count_20")]
+summary(dfClus)
+```
+
+```{r}
+#Rescale the units.
+dfClus=scale(dfClus)
+summary(dfClus)
+```
+
+```{r}
+#Rename the subset indexes as tract number.
+row.names(dfClus)=final$tract_id
+head(dfClus)
+```
+
+```{r}
+#Set random seed.
+set.seed(999)
+```
+
+```{r}
+#Load the cluster package.
+library(cluster)
+#Compute all the distances between observations in the data set.
+dfClus_D=cluster::daisy(x=dfClus)
+```
+
+#Using Partitional Clustering method. 
+```{r}
+#Indicate the amount of clusters we want, which is 5 here, and apply the cluster function.
+NumCluster=5
+res.pam = pam(x=dfClus_D,
+              k = NumCluster,
+              cluster.only = F)
+```
+
+```{r}
+#Add results to original data frame, "final".
+final$pam=as.factor(res.pam$clustering)
+```
+
+
+```{r}
+#Query data: cluster 2.
+final[final$pam==2,'tract_id']
+```
+
+```{r}
+#Report the table of clusters and see how many observations in each cluster.
+table(final$pam)
+```
+
+
+```{r}
+#Load the factoextra package.
+library(factoextra)
+```
+
+```{r}
+#Display the cluster silhouette plot and the average silhouette width.
+fviz_silhouette(res.pam)
+```
+
+```{r}
+#Save individual silhouettes.
+pamEval=data.frame(res.pam$silinfo$widths)
+head(pamEval)
+```
+
+```{r}
+#Examine anomalies.
+#Request negative silhouettes: the ones that are poorly clustered.
+#We can tell there are 146 observations that are poorly clustered.
+pamEval[pamEval$sil_width<0,]
+```
+
+#Using Hierarchical Agglomerative Clustering method.
+```{r}
+library(factoextra)
+#Apply the hierarchical agglomerative clustering function.
+res.agnes= hcut(dfClus_D, 
+                k = NumCluster,isdiss=T,
+                hc_func='agnes',
+                hc_method = "ward.D2")
+```
+
+```{r}
+#Add results to original data frame, "final".
+final$agn=as.factor(res.agnes$cluster)
+```
+
+```{r}
+#Query data: cluster 3.
+final[final$agn==3,'tract_id']
+```
+
+```{r}
+final[final$tract_id==53005010809,'agn']
+```
+
+```{r}
+#Report the table of clusters and see how many observations in each cluster.
+table(final$agn)
+```
+
+```{r}
+#Evaluate the results.
+#Display the cluster dendrogram.
+fviz_dend(res.agnes,k=NumCluster, cex = 0.7, horiz = T)
+```
+```{r}
+#Evaluate the results.
+#Or display the cluster silhouette plot and the average silhouette width of the clustering results.
+fviz_silhouette(res.agnes)
+```
+```{r}
+#Save the silhouettes.
+agnEval=data.frame(res.agnes$silinfo$widths)
+head(agnEval)
+```
+```{r}
+#Examine anomalies.
+#Request the negative silhouettes.
+agnEval[agnEval$sil_width<0,]
+```
+#Using Hierarchical Divisive Clustering method.
+```{r}
+#Load the factoextra package.
+library(factoextra)
+#Apply the hierarchical divisive clustering function.
+res.diana= hcut(dfClus_D, k = NumCluster,
+                 hc_func='diana',
+                 hc_method = "ward.D")
+```
+
+```{r}
+#Add results to the original data frame.
+final$dia=as.factor(res.diana$cluster)
+```
+
+```{r}
+#Report the table of clusters and see how many observations in each cluster.
+table(final$dia)
+```
+
+```{r}
+#Evaluate the results.
+#Display the cluster dendrogram.
+fviz_dend(res.diana,k=NumCluster, cex = 0.7, horiz = T)
+```
+
+```{r}
+#Evaluate the results.
+#Or display the cluster silhouette plot and the average silhouette width of the clustering results.
+library(factoextra)
+fviz_silhouette(res.diana)
+```
+
+```{r}
+#Save the silhouettes.
+diaEval=data.frame(res.diana$silinfo$widths)
+head(diaEval)
+```
+
+```{r}
+#Examine anomalies.
+#Request the negative silhouettes.
+diaEval[diaEval$sil_width<0,]
+```
